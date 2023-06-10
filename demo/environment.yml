@@ -1,0 +1,14 @@
+name: test_pen_world
+channels:
+  - defaults
+  - conda-forge
+  - anaconda
+dependencies:
+  - python=3.9
+  - pytorch
+  - ca-certificates
+  - openssl
+  - pygame
+  - ipykernel
+  - matplotlib
+prefix: /Users/shakeebmajid/opt/miniconda3/envs/test_pen_world
