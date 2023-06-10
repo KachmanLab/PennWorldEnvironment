@@ -7,7 +7,7 @@ import time
 
 # create ppo agent and environment
 ppo_agent = PPO.load("pen_world_agent.pth")
-env = gym.make("PenWorld-v0", ngen=5, n=10, render_mode="human")
+env = gym.make("PenWorld-v0", ngen=5, n=15, render_mode="human")
 
 observation, info = env.reset()
 time.sleep(3)
