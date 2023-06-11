@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pen_world.P3.PenWorld &mdash; PenWorld 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PenWorld
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">PennWorldEnvironment</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PenWorld</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pen_world.P3.PenWorld</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pen_world.P3.PenWorld</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">gymnasium</span> <span class="k">as</span> <span class="nn">gym</span>
+<span class="kn">from</span> <span class="nn">gymnasium</span> <span class="kn">import</span> <span class="n">spaces</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">queue</span> <span class="kn">import</span> <span class="n">Queue</span>
+<span class="kn">from</span> <span class="nn">pen_world.P3.PenroseP3</span> <span class="kn">import</span> <span class="n">generate_tiling</span>
+<span class="kn">from</span> <span class="nn">pen_world.P3.ObservationSpace</span> <span class="kn">import</span> <span class="n">ObservationSpace</span>
+<span class="kn">import</span> <span class="nn">pygame</span>
+
+
+<span class="n">REWARD_COORDINATES</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<div class="viewcode-block" id="PenWorld"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld">[docs]</a><span class="k">class</span> <span class="nc">PenWorld</span><span class="p">(</span><span class="n">gym</span><span class="o">.</span><span class="n">Env</span><span class="p">):</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;render_modes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;human&quot;</span><span class="p">],</span> <span class="s2">&quot;render_fps&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">render_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ngen</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate an environment with a penrose tiling</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ngen (int): number of inflation steps to generate penrose env.</span>
+<span class="sd">            n (int): radius of initialization positions (all initializations are done n steps from env center)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="mi">512</span>  <span class="c1"># The size of the PyGame window</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ngen</span> <span class="o">=</span> <span class="n">ngen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">generate_tiling</span><span class="p">(</span><span class="n">ngen</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_sub_env</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># create sub environment of nodes within &quot;n&quot; steps of origin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_map</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_mask_map</span><span class="p">()</span>  <span class="c1"># generate masks for possible action spaces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_ep_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_max_ep_length</span><span class="p">()</span>
+
+        <span class="c1"># get max x and y positions for rendering</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">vertex</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_y</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">vertex</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Discrete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">ObservationSpace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_all_positions</span><span class="p">())</span>
+        
+        <span class="k">assert</span> <span class="n">render_mode</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">render_mode</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;render_modes&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">=</span> <span class="n">render_mode</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="PenWorld.get_all_positions"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.get_all_positions">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
+
+    <span class="k">def</span> <span class="nf">_to_canvas_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_coordinates</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert environment coordinates to canvas coordinates</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            env_coordinates (tuple): coordinates in environment</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: coordinates in canvas</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># get max x and y coordinates of environment</span>
+
+        <span class="n">env_x</span><span class="p">,</span> <span class="n">env_y</span> <span class="o">=</span> <span class="n">env_coordinates</span>
+        <span class="n">canvas_x</span> <span class="o">=</span> <span class="n">env_x</span> <span class="o">*</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">canvas_y</span> <span class="o">=</span> <span class="n">env_y</span> <span class="o">*</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_y</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">canvas_x</span><span class="p">,</span> <span class="n">canvas_y</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">_generate_sub_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate sub environment within environment of &quot;radius&quot; n (every vertex is max n steps from origin)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
+        <span class="n">origin</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span>
+        <span class="n">init_radius</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">origin</span><span class="p">,</span> <span class="n">init_radius</span><span class="p">))</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">node</span><span class="p">,</span> <span class="n">radius</span>  <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">]:</span>
+                <span class="n">neighbor</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+                <span class="n">new_radius</span> <span class="o">=</span> <span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">neighbor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span> <span class="ow">and</span> <span class="n">new_radius</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
+                    <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">neighbor</span><span class="p">,</span> <span class="n">new_radius</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+                    
+
+<div class="viewcode-block" id="PenWorld.setup_mask_map"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.setup_mask_map">[docs]</a>    <span class="k">def</span> <span class="nf">setup_mask_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate map from number of actions to mask array which is used by agent to mask invalid actions</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[int, array] - dictionary from number of actions to associated mask </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># find how many distinct option sets there are</span>
+        <span class="n">option_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">:</span>
+            <span class="n">option_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">vertex</span><span class="p">]))</span>
+
+        <span class="n">total_options</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">option_set</span><span class="p">)</span>
+        <span class="n">start_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">mask_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">num_actions</span> <span class="ow">in</span> <span class="n">option_set</span><span class="p">:</span>
+            <span class="c1"># create masks that are mapped to the number of actions that are possible</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">total_options</span><span class="p">)</span>
+            <span class="n">mask</span><span class="p">[</span><span class="n">start_index</span><span class="p">:</span><span class="n">start_index</span> <span class="o">+</span> <span class="n">num_actions</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">mask_map</span><span class="p">[</span><span class="n">num_actions</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+            <span class="n">start_index</span> <span class="o">+=</span> <span class="n">num_actions</span>
+
+        <span class="k">return</span> <span class="n">mask_map</span><span class="p">,</span> <span class="n">total_options</span></div>
+
+
+<div class="viewcode-block" id="PenWorld.get_action_mask"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.get_action_mask">[docs]</a>    <span class="k">def</span> <span class="nf">get_action_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate action mask for masking probabilities of agent taking actions since action space varies at different states</span>
+
+<span class="sd">        Returns: </span>
+<span class="sd">            action_mask - a binary array of possible actions to take at this point</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">num_actions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_map</span><span class="p">[</span><span class="n">num_actions</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_calculate_max_ep_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the maximum number of steps per episode</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int): maximum episode length</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;number of nodes in sub environment: </span><span class="si">{</span><span class="n">num_nodes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;max_ep_length: </span><span class="si">{</span><span class="n">num_nodes</span> <span class="o">*</span> <span class="mi">2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># heuristic: twice the number of nodes in the sub environment</span>
+        <span class="k">return</span> <span class="n">num_nodes</span> <span class="o">*</span> <span class="mi">2</span>
+
+    
+    <span class="k">def</span> <span class="nf">_get_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">info_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;action_mask&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_action_mask</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">info_dict</span>
+    
+
+<div class="viewcode-block" id="PenWorld.reset"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the environment position and time step</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seed (int, optional): Seed for random number generator used for new position. Defaults to None.</span>
+<span class="sd">            options (dict, optional): dictionary which can reset to hardcoded new position. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            observation: position of agent</span>
+<span class="sd">            info: auxilliary info</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_coordinates</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start_coordinates</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="s1">&#39;start_coordinates&#39;</span><span class="p">]</span>
+
+        <span class="c1"># initialize starting coordinates to random if no specific starting position is given</span>
+        <span class="k">if</span> <span class="n">start_coordinates</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">np_random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_graph_nodes</span><span class="p">)))</span> 
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="n">start_coordinates</span>
+
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_info</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_render_frame</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trajectory</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">max_ep_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span>
+
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">info</span></div>
+
+
+<div class="viewcode-block" id="PenWorld.step"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Take a step in the environment</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            action (int): action corresponding to an edge to traverse in the graph</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            observation (array): new position of agent as an (x, y) array</span>
+<span class="sd">            reward (int): reward for taking action</span>
+<span class="sd">            terminated (bool): whether or not the episode is terminated (agent reached reward)</span>
+<span class="sd">            truncated (bool): whether or not the episode is truncated (maximum episode length reached)</span>
+<span class="sd">            info (dict): auxilliary info</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">action</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">]):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">][</span><span class="n">action</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WRONG ACTION NUM!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># set rewards</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">==</span> <span class="n">REWARD_COORDINATES</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">terminated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">terminated</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># check if maximum episode length is reached</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_ep_length</span><span class="p">:</span>
+            <span class="n">truncated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">truncated</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_render_frame</span><span class="p">()</span>
+
+        <span class="c1"># return state or coordinates</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_info</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span>
+
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span></div>
+
+<div class="viewcode-block" id="PenWorld.render"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.render">[docs]</a>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;rgb_array&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_render_frame</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_render_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">set_mode</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">Clock</span><span class="p">()</span>
+
+        <span class="c1"># Create canvas to draw on.</span>
+        <span class="n">canvas</span> <span class="o">=</span> <span class="n">pygame</span><span class="o">.</span><span class="n">Surface</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">fill</span><span class="p">((</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span>
+
+        <span class="c1"># Draw the graph</span>
+        <span class="k">for</span> <span class="n">point</span><span class="p">,</span> <span class="n">neighbors</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+                <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="n">point</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="n">neighbor</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">agent_size</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="c1"># Draw the reward</span>
+        <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span>
+            <span class="n">canvas</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="n">REWARD_COORDINATES</span><span class="p">),</span>
+            <span class="n">agent_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Now we draw the agent</span>
+        <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span>
+            <span class="n">canvas</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">),</span>
+            <span class="n">agent_size</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Draw the trajectory</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_canvas_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]),</span> <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_mode</span> <span class="o">==</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span>
+            <span class="c1"># The following line copies our drawings from `canvas` to the visible window</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">blit</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="n">canvas</span><span class="o">.</span><span class="n">get_rect</span><span class="p">())</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">pump</span><span class="p">()</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+            <span class="c1"># We need to ensure that human-rendering occurs at the predefined framerate.</span>
+            <span class="c1"># The following line will automatically add a delay to keep the framerate stable.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;render_fps&quot;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="PenWorld.close"><a class="viewcode-back" href="../../../pen_world.P3.html#pen_world.P3.PenWorld.PenWorld.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+            <span class="n">pygame</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Shakeeb Majid.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
