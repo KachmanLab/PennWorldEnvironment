@@ -19,6 +19,11 @@ python demo.py
 The jupyter notebook `demo.ipynb` can also be ran to an example of training with the environment.
 
 <br/><br/>
+PPO implementation modified from nikhilbarhate99/PPO-PyTorch
+V-MPO implementation modified from YYCAAA/V-MPO_Lunarlander
+Penrose tile generation modified from xnx/penrose
+<br/><br/>
+
 Copyright 2023 Shakeeb Majid
 
 Licensed under the Apache License, Version 2.0 (the "License");
