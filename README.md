@@ -17,10 +17,13 @@ cd demo
 python demo.py
 ```
 The jupyter notebook `demo.ipynb` can also be ran to an example of training with the environment.
-
 <br/><br/>
+
+## Acknowledgements
 PPO implementation modified from nikhilbarhate99/PPO-PyTorch
+
 V-MPO implementation modified from YYCAAA/V-MPO_Lunarlander
+
 Penrose tile generation modified from xnx/penrose
 <br/><br/>
 
