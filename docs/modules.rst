@@ -5,4 +5,3 @@ PennWorldEnvironment
    :maxdepth: 4
 
    pen_world
-   setup
