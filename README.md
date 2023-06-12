@@ -19,6 +19,9 @@ python demo.py
 The jupyter notebook `demo.ipynb` can also be ran to an example of training with the environment.
 <br/><br/>
 
+## Docs
+You can find the docs for this project at https://penworld.readthedocs.io/
+
 ## Acknowledgements
 PPO implementation modified from nikhilbarhate99/PPO-PyTorch
 
