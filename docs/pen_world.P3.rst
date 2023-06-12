@@ -52,14 +52,6 @@ pen\_world.P3.RobinsonTriangle module
    :undoc-members:
    :show-inheritance:
 
-pen\_world.P3.test module
--------------------------
-
-.. automodule:: pen_world.P3.test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
