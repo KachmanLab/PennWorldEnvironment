@@ -10,6 +10,7 @@ import pygame
 
 REWARD_COORDINATES = (0, 0)
 class PenWorld(gym.Env):
+    """Gymnasium environment for Penrose environment"""
     metadata = {"render_modes": ["human"], "render_fps": 5}
 
     def __init__(self, render_mode=None, ngen=5, n=5):

@@ -5,6 +5,8 @@
 
 Welcome to PenWorld's documentation!
 ====================================
+This is the documentation for PenWorld, a new gymnasium environment based on the P3 Penrose tiling.
+The main code for the environment is in the PenWorld.py file.
 
 .. toctree::
    :maxdepth: 2
